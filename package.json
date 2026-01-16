@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "buffer": "^6.0.3",
     "@react-three/drei": "^9.100.0",
     "@react-three/fiber": "^8.17.0",
     "@solana/actions": "^1.6.0",
