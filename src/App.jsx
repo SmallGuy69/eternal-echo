@@ -39,39 +39,49 @@ export default function App() {
   // REPLACE with your wallet address
   const MY_WALLET = "2BL8QZqU5ax7p7WUvRaWbk14bKp9HTsU75BhhYorcuqt"
 
-  const handleTransaction = async (amount) => {
+ const sendSol = async (amount) => {
     try {
-      setLoading(true)
-      setStatus('Connecting to Wallet...')
+      setStatus("Requesting Wallet...");
       
-      const { solana } = window
-      if (!solana) return alert('Solana wallet not found!')
+      // 1. Check if Phantom/Solflare exists
+      const provider = window?.solana || window?.phantom?.solana;
+      
+      if (!provider) {
+        window.open("https://phantom.app/", "_blank");
+        return setStatus("Please install Phantom Wallet");
+      }
 
-      const response = await solana.connect()
-      const publicKey = response.publicKey
+      // 2. Force Connect
+      const resp = await provider.connect();
+      const senderPublicKey = resp.publicKey;
       
-      const connection = new Connection("https://api.mainnet-beta.solana.com", "confirmed")
+      setStatus("Preparing Transmission...");
+
+      const conn = new Connection("https://api.mainnet-beta.solana.com", "confirmed");
+      
+      // 3. Create Transaction
       const transaction = new Transaction().add(
         SystemProgram.transfer({
-          fromPubkey: publicKey,
+          fromPubkey: senderPublicKey,
           toPubkey: new PublicKey(MY_WALLET),
           lamports: amount * 1000000000,
         })
-      )
+      );
 
-      transaction.feePayer = publicKey
-      let { blockhash } = await connection.getLatestBlockhash()
-      transaction.recentBlockhash = blockhash
+      transaction.feePayer = senderPublicKey;
+      const { blockhash } = await conn.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
 
-      const { signature } = await solana.signAndSendTransaction(transaction)
-      setStatus(`Success! Sig: ${signature.slice(0, 8)}...`)
-    } catch (err) {
-      console.error(err)
-      setStatus('Transaction Failed')
-    } finally {
-      setLoading(false)
+      // 4. Sign and Send
+      setStatus("Awaiting Signature...");
+      const { signature } = await provider.signAndSendTransaction(transaction);
+      
+      setStatus("Echo Sent! Sig: " + signature.slice(0, 6));
+    } catch (e) {
+      console.error(e);
+      setStatus("Transaction Cancelled");
     }
-  }
+  };
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#000', position: 'relative' }}>
